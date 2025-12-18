@@ -1,250 +1,457 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlaneIcon } from "./PlaneIcon";
-import { CalendarDays, MapPin, Users, ArrowRight } from "lucide-react";
+import { CalendarDays, MapPin, Users, ArrowLeftRight, Train, Plane } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const airports = [
-  { code: "JFK", city: "New York", country: "USA" },
-  { code: "LAX", city: "Los Angeles", country: "USA" },
-  { code: "LHR", city: "London", country: "UK" },
-  { code: "CDG", city: "Paris", country: "France" },
-  { code: "NRT", city: "Tokyo", country: "Japan" },
-  { code: "DXB", city: "Dubai", country: "UAE" },
-  { code: "SIN", city: "Singapore", country: "Singapore" },
-  { code: "SYD", city: "Sydney", country: "Australia" },
+  { code: "DEL", city: "New Delhi", name: "Indira Gandhi International" },
+  { code: "BOM", city: "Mumbai", name: "Chhatrapati Shivaji Maharaj" },
+  { code: "BLR", city: "Bengaluru", name: "Kempegowda International" },
+  { code: "MAA", city: "Chennai", name: "Chennai International" },
+  { code: "CCU", city: "Kolkata", name: "Netaji Subhas Chandra Bose" },
+  { code: "HYD", city: "Hyderabad", name: "Rajiv Gandhi International" },
+  { code: "GOI", city: "Goa", name: "Dabolim Airport" },
+  { code: "JAI", city: "Jaipur", name: "Jaipur International" },
 ];
 
-export const BookingForm = () => {
-  const [origin, setOrigin] = useState("");
-  const [destination, setDestination] = useState("");
-  const [departureDate, setDepartureDate] = useState<Date>();
-  const [returnDate, setReturnDate] = useState<Date>();
-  const [passengers, setPassengers] = useState("1");
-  const [tripType, setTripType] = useState<"roundtrip" | "oneway">("roundtrip");
+const trainStations = [
+  { code: "NDLS", city: "New Delhi", name: "New Delhi Railway Station" },
+  { code: "BCT", city: "Mumbai", name: "Mumbai Central" },
+  { code: "SBC", city: "Bengaluru", name: "Bengaluru City Junction" },
+  { code: "MAS", city: "Chennai", name: "Chennai Central" },
+  { code: "HWH", city: "Kolkata", name: "Howrah Junction" },
+  { code: "SC", city: "Hyderabad", name: "Secunderabad Junction" },
+  { code: "JP", city: "Jaipur", name: "Jaipur Junction" },
+  { code: "LKO", city: "Lucknow", name: "Lucknow Charbagh" },
+];
 
-  const handleSubmit = (e: React.FormEvent) => {
+const travelClasses = {
+  flight: [
+    { value: "economy", label: "Economy" },
+    { value: "premium", label: "Premium Economy" },
+    { value: "business", label: "Business" },
+    { value: "first", label: "First Class" },
+  ],
+  train: [
+    { value: "sl", label: "Sleeper (SL)" },
+    { value: "3a", label: "AC 3 Tier (3A)" },
+    { value: "2a", label: "AC 2 Tier (2A)" },
+    { value: "1a", label: "AC First Class (1A)" },
+    { value: "cc", label: "Chair Car (CC)" },
+  ],
+};
+
+export const BookingForm = () => {
+  const [activeTab, setActiveTab] = useState("flights");
+  
+  // Flight state
+  const [flightOrigin, setFlightOrigin] = useState("");
+  const [flightDestination, setFlightDestination] = useState("");
+  const [flightDepartureDate, setFlightDepartureDate] = useState<Date>();
+  const [flightReturnDate, setFlightReturnDate] = useState<Date>();
+  const [flightPassengers, setFlightPassengers] = useState("1");
+  const [flightClass, setFlightClass] = useState("economy");
+  const [flightTripType, setFlightTripType] = useState<"roundtrip" | "oneway">("oneway");
+
+  // Train state
+  const [trainOrigin, setTrainOrigin] = useState("");
+  const [trainDestination, setTrainDestination] = useState("");
+  const [trainDepartureDate, setTrainDepartureDate] = useState<Date>();
+  const [trainPassengers, setTrainPassengers] = useState("1");
+  const [trainClass, setTrainClass] = useState("3a");
+
+  const handleFlightSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!origin || !destination || !departureDate) {
+    if (!flightOrigin || !flightDestination || !flightDepartureDate) {
       toast.error("Please fill in all required fields");
       return;
     }
-
-    if (origin === destination) {
+    if (flightOrigin === flightDestination) {
       toast.error("Origin and destination cannot be the same");
       return;
     }
-
-    toast.success("Searching for flights...", {
-      description: `${origin} → ${destination} on ${format(departureDate, "MMM d, yyyy")}`,
+    const originCity = airports.find(a => a.code === flightOrigin)?.city;
+    const destCity = airports.find(a => a.code === flightDestination)?.city;
+    toast.success("Searching flights...", {
+      description: `${originCity} → ${destCity} on ${format(flightDepartureDate, "MMM d, yyyy")}`,
     });
   };
 
+  const handleTrainSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!trainOrigin || !trainDestination || !trainDepartureDate) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    if (trainOrigin === trainDestination) {
+      toast.error("Origin and destination cannot be the same");
+      return;
+    }
+    const originCity = trainStations.find(s => s.code === trainOrigin)?.city;
+    const destCity = trainStations.find(s => s.code === trainDestination)?.city;
+    toast.success("Searching trains...", {
+      description: `${originCity} → ${destCity} on ${format(trainDepartureDate, "MMM d, yyyy")}`,
+    });
+  };
+
+  const swapFlightLocations = () => {
+    const temp = flightOrigin;
+    setFlightOrigin(flightDestination);
+    setFlightDestination(temp);
+  };
+
+  const swapTrainLocations = () => {
+    const temp = trainOrigin;
+    setTrainOrigin(trainDestination);
+    setTrainDestination(temp);
+  };
+
   return (
-    <section className="py-20 bg-pattern">
+    <section className="py-16 bg-pattern" id="booking">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 text-secondary mb-4">
-            <PlaneIcon size="sm" className="text-secondary" />
-            <span className="font-medium tracking-wider uppercase text-sm">Book Your Journey</span>
-          </div>
-          <h2 className="font-display text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Start Your <span className="text-gradient-gold">Adventure</span>
-          </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Experience the golden age of aviation with our premium booking service
-          </p>
-        </div>
+        <div className="max-w-5xl mx-auto">
+          <div className="bg-card rounded-2xl shadow-elevated border border-border overflow-hidden">
+            {/* Tabs Header */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="w-full h-auto p-0 bg-muted/50 rounded-none border-b border-border">
+                <TabsTrigger 
+                  value="flights" 
+                  className="flex-1 py-4 px-6 rounded-none data-[state=active]:bg-card data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-secondary gap-2"
+                >
+                  <Plane className="w-5 h-5" />
+                  <span className="font-semibold">Flights</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="trains" 
+                  className="flex-1 py-4 px-6 rounded-none data-[state=active]:bg-card data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-secondary gap-2"
+                >
+                  <Train className="w-5 h-5" />
+                  <span className="font-semibold">Trains</span>
+                </TabsTrigger>
+              </TabsList>
 
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-card rounded-2xl shadow-elevated border border-border p-8">
-            {/* Trip Type Toggle */}
-            <div className="flex gap-4 mb-8">
-              <button
-                type="button"
-                onClick={() => setTripType("roundtrip")}
-                className={cn(
-                  "px-6 py-2 rounded-full font-medium transition-all duration-300",
-                  tripType === "roundtrip"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                )}
-              >
-                Round Trip
-              </button>
-              <button
-                type="button"
-                onClick={() => setTripType("oneway")}
-                className={cn(
-                  "px-6 py-2 rounded-full font-medium transition-all duration-300",
-                  tripType === "oneway"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                )}
-              >
-                One Way
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Origin & Destination */}
-              <div className="grid md:grid-cols-2 gap-6 relative">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-secondary" />
-                    From
-                  </Label>
-                  <Select value={origin} onValueChange={setOrigin}>
-                    <SelectTrigger className="h-14 text-base">
-                      <SelectValue placeholder="Select origin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {airports.map((airport) => (
-                        <SelectItem key={airport.code} value={airport.code}>
-                          <span className="font-semibold">{airport.code}</span>
-                          <span className="text-muted-foreground ml-2">
-                            {airport.city}, {airport.country}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              {/* Flights Tab */}
+              <TabsContent value="flights" className="p-6 mt-0">
+                {/* Trip Type Toggle */}
+                <div className="flex gap-6 mb-6">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="flightTripType"
+                      checked={flightTripType === "oneway"}
+                      onChange={() => setFlightTripType("oneway")}
+                      className="w-4 h-4 accent-secondary"
+                    />
+                    <span className="font-medium">One Way</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="flightTripType"
+                      checked={flightTripType === "roundtrip"}
+                      onChange={() => setFlightTripType("roundtrip")}
+                      className="w-4 h-4 accent-secondary"
+                    />
+                    <span className="font-medium">Round Trip</span>
+                  </label>
                 </div>
 
-                {/* Swap Button */}
-                <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-1 z-10">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const temp = origin;
-                      setOrigin(destination);
-                      setDestination(temp);
-                    }}
-                    className="w-10 h-10 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-gold hover:scale-110 transition-transform"
-                  >
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
+                <form onSubmit={handleFlightSearch} className="space-y-6">
+                  {/* Origin & Destination */}
+                  <div className="grid md:grid-cols-2 gap-4 relative">
+                    <div className="bg-muted/30 rounded-xl p-4 border border-border hover:border-secondary/50 transition-colors">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">From</Label>
+                      <Select value={flightOrigin} onValueChange={setFlightOrigin}>
+                        <SelectTrigger className="border-0 p-0 h-auto text-lg font-semibold bg-transparent shadow-none focus:ring-0">
+                          <SelectValue placeholder="Select City" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {airports.map((airport) => (
+                            <SelectItem key={airport.code} value={airport.code}>
+                              <div className="flex flex-col">
+                                <span className="font-semibold">{airport.city}</span>
+                                <span className="text-xs text-muted-foreground">{airport.code} - {airport.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {flightOrigin && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {airports.find(a => a.code === flightOrigin)?.name}
+                        </p>
+                      )}
+                    </div>
 
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-secondary" />
-                    To
-                  </Label>
-                  <Select value={destination} onValueChange={setDestination}>
-                    <SelectTrigger className="h-14 text-base">
-                      <SelectValue placeholder="Select destination" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {airports.map((airport) => (
-                        <SelectItem key={airport.code} value={airport.code}>
-                          <span className="font-semibold">{airport.code}</span>
-                          <span className="text-muted-foreground ml-2">
-                            {airport.city}, {airport.country}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                    {/* Swap Button */}
+                    <button
+                      type="button"
+                      onClick={swapFlightLocations}
+                      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-card border-2 border-secondary text-secondary flex items-center justify-center shadow-lg hover:bg-secondary hover:text-secondary-foreground transition-all"
+                    >
+                      <ArrowLeftRight className="w-4 h-4" />
+                    </button>
 
-              {/* Dates & Passengers */}
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium flex items-center gap-2">
-                    <CalendarDays className="w-4 h-4 text-secondary" />
-                    Departure
-                  </Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "h-14 w-full justify-start text-left font-normal text-base",
-                          !departureDate && "text-muted-foreground"
-                        )}
-                      >
-                        {departureDate ? format(departureDate, "MMM d, yyyy") : "Select date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={departureDate}
-                        onSelect={setDepartureDate}
-                        disabled={(date) => date < new Date()}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                {tripType === "roundtrip" && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium flex items-center gap-2">
-                      <CalendarDays className="w-4 h-4 text-secondary" />
-                      Return
-                    </Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "h-14 w-full justify-start text-left font-normal text-base",
-                            !returnDate && "text-muted-foreground"
-                          )}
-                        >
-                          {returnDate ? format(returnDate, "MMM d, yyyy") : "Select date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={returnDate}
-                          onSelect={setReturnDate}
-                          disabled={(date) => date < (departureDate || new Date())}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <div className="bg-muted/30 rounded-xl p-4 border border-border hover:border-secondary/50 transition-colors">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">To</Label>
+                      <Select value={flightDestination} onValueChange={setFlightDestination}>
+                        <SelectTrigger className="border-0 p-0 h-auto text-lg font-semibold bg-transparent shadow-none focus:ring-0">
+                          <SelectValue placeholder="Select City" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {airports.map((airport) => (
+                            <SelectItem key={airport.code} value={airport.code}>
+                              <div className="flex flex-col">
+                                <span className="font-semibold">{airport.city}</span>
+                                <span className="text-xs text-muted-foreground">{airport.code} - {airport.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {flightDestination && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {airports.find(a => a.code === flightDestination)?.name}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                )}
 
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium flex items-center gap-2">
-                    <Users className="w-4 h-4 text-secondary" />
-                    Passengers
-                  </Label>
-                  <Select value={passengers} onValueChange={setPassengers}>
-                    <SelectTrigger className="h-14 text-base">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
-                        <SelectItem key={num} value={num.toString()}>
-                          {num} {num === 1 ? "Passenger" : "Passengers"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                  {/* Date, Passengers, Class */}
+                  <div className="grid md:grid-cols-4 gap-4">
+                    <div className="bg-muted/30 rounded-xl p-4 border border-border hover:border-secondary/50 transition-colors">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Departure</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button type="button" className="w-full text-left">
+                            <div className="text-lg font-semibold">
+                              {flightDepartureDate ? format(flightDepartureDate, "d MMM") : "Select Date"}
+                            </div>
+                            {flightDepartureDate && (
+                              <p className="text-xs text-muted-foreground">{format(flightDepartureDate, "EEEE, yyyy")}</p>
+                            )}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={flightDepartureDate}
+                            onSelect={setFlightDepartureDate}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
 
-              {/* Submit Button */}
-              <Button type="submit" variant="gold" size="xl" className="w-full mt-4">
-                <PlaneIcon size="sm" className="text-secondary-foreground" />
-                Search Flights
-              </Button>
-            </form>
+                    {flightTripType === "roundtrip" && (
+                      <div className="bg-muted/30 rounded-xl p-4 border border-border hover:border-secondary/50 transition-colors">
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wider">Return</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button type="button" className="w-full text-left">
+                              <div className="text-lg font-semibold">
+                                {flightReturnDate ? format(flightReturnDate, "d MMM") : "Select Date"}
+                              </div>
+                              {flightReturnDate && (
+                                <p className="text-xs text-muted-foreground">{format(flightReturnDate, "EEEE, yyyy")}</p>
+                              )}
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={flightReturnDate}
+                              onSelect={setFlightReturnDate}
+                              disabled={(date) => date < (flightDepartureDate || new Date())}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    )}
+
+                    <div className="bg-muted/30 rounded-xl p-4 border border-border hover:border-secondary/50 transition-colors">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Travellers</Label>
+                      <Select value={flightPassengers} onValueChange={setFlightPassengers}>
+                        <SelectTrigger className="border-0 p-0 h-auto text-lg font-semibold bg-transparent shadow-none focus:ring-0">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                            <SelectItem key={num} value={num.toString()}>
+                              {num} {num === 1 ? "Traveller" : "Travellers"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="bg-muted/30 rounded-xl p-4 border border-border hover:border-secondary/50 transition-colors">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Class</Label>
+                      <Select value={flightClass} onValueChange={setFlightClass}>
+                        <SelectTrigger className="border-0 p-0 h-auto text-lg font-semibold bg-transparent shadow-none focus:ring-0">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {travelClasses.flight.map((cls) => (
+                            <SelectItem key={cls.value} value={cls.value}>
+                              {cls.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <Button type="submit" variant="gold" size="xl" className="w-full">
+                    <Plane className="w-5 h-5" />
+                    Search Flights
+                  </Button>
+                </form>
+              </TabsContent>
+
+              {/* Trains Tab */}
+              <TabsContent value="trains" className="p-6 mt-0">
+                <form onSubmit={handleTrainSearch} className="space-y-6">
+                  {/* Origin & Destination */}
+                  <div className="grid md:grid-cols-2 gap-4 relative">
+                    <div className="bg-muted/30 rounded-xl p-4 border border-border hover:border-secondary/50 transition-colors">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">From</Label>
+                      <Select value={trainOrigin} onValueChange={setTrainOrigin}>
+                        <SelectTrigger className="border-0 p-0 h-auto text-lg font-semibold bg-transparent shadow-none focus:ring-0">
+                          <SelectValue placeholder="Select Station" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {trainStations.map((station) => (
+                            <SelectItem key={station.code} value={station.code}>
+                              <div className="flex flex-col">
+                                <span className="font-semibold">{station.city}</span>
+                                <span className="text-xs text-muted-foreground">{station.code} - {station.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {trainOrigin && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {trainStations.find(s => s.code === trainOrigin)?.name}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Swap Button */}
+                    <button
+                      type="button"
+                      onClick={swapTrainLocations}
+                      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-card border-2 border-secondary text-secondary flex items-center justify-center shadow-lg hover:bg-secondary hover:text-secondary-foreground transition-all"
+                    >
+                      <ArrowLeftRight className="w-4 h-4" />
+                    </button>
+
+                    <div className="bg-muted/30 rounded-xl p-4 border border-border hover:border-secondary/50 transition-colors">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">To</Label>
+                      <Select value={trainDestination} onValueChange={setTrainDestination}>
+                        <SelectTrigger className="border-0 p-0 h-auto text-lg font-semibold bg-transparent shadow-none focus:ring-0">
+                          <SelectValue placeholder="Select Station" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {trainStations.map((station) => (
+                            <SelectItem key={station.code} value={station.code}>
+                              <div className="flex flex-col">
+                                <span className="font-semibold">{station.city}</span>
+                                <span className="text-xs text-muted-foreground">{station.code} - {station.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {trainDestination && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {trainStations.find(s => s.code === trainDestination)?.name}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Date, Passengers, Class */}
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="bg-muted/30 rounded-xl p-4 border border-border hover:border-secondary/50 transition-colors">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Travel Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button type="button" className="w-full text-left">
+                            <div className="text-lg font-semibold">
+                              {trainDepartureDate ? format(trainDepartureDate, "d MMM") : "Select Date"}
+                            </div>
+                            {trainDepartureDate && (
+                              <p className="text-xs text-muted-foreground">{format(trainDepartureDate, "EEEE, yyyy")}</p>
+                            )}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={trainDepartureDate}
+                            onSelect={setTrainDepartureDate}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="bg-muted/30 rounded-xl p-4 border border-border hover:border-secondary/50 transition-colors">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Passengers</Label>
+                      <Select value={trainPassengers} onValueChange={setTrainPassengers}>
+                        <SelectTrigger className="border-0 p-0 h-auto text-lg font-semibold bg-transparent shadow-none focus:ring-0">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[1, 2, 3, 4, 5, 6].map((num) => (
+                            <SelectItem key={num} value={num.toString()}>
+                              {num} {num === 1 ? "Passenger" : "Passengers"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="bg-muted/30 rounded-xl p-4 border border-border hover:border-secondary/50 transition-colors">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Class</Label>
+                      <Select value={trainClass} onValueChange={setTrainClass}>
+                        <SelectTrigger className="border-0 p-0 h-auto text-lg font-semibold bg-transparent shadow-none focus:ring-0">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {travelClasses.train.map((cls) => (
+                            <SelectItem key={cls.value} value={cls.value}>
+                              {cls.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <Button type="submit" variant="gold" size="xl" className="w-full">
+                    <Train className="w-5 h-5" />
+                    Search Trains
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>
